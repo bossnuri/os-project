@@ -7,13 +7,15 @@
 
 char pre_cmd[256];
 
-void check_command(char* x){ 
+void check_command(char* x, int z){ 
 	char *token = strtok(x," ");
 	if(strcmp(token,"echo\n")==0){
 		
 		printf("\n");
 		free(token);
-		starting();
+		if(z ==0){
+			starting();
+		}
 	}
 	if(strcmp(token,"echo")==0){
 		token = strtok(NULL," ");
@@ -25,7 +27,9 @@ void check_command(char* x){
 			
 		}
 		free(token);
-		starting();
+		if(z ==0){
+			starting();
+		}
 	}
 	else if(strcmp(token,"exit")==0){
 		token = strtok(NULL," ");
@@ -40,20 +44,28 @@ void check_command(char* x){
 	}
 	else{
 		printf("bad command\n");
-		starting();
+		if(z ==0){
+			starting();
+		}
 		free(token);
 	}
 
 }
 
-void is_space(char* x){
+void is_space(char* x, int z){
 	int i =0;
 	while(*(x+i )== ' '){
 		i++;
 	}
 	if(strlen(x)-1 == i || strlen(x)==1){
-		starting();
-		free(x);
+		if(z==1){
+			printf("\n");
+			free(x);
+		}
+		else{
+			starting();
+			free(x);
+		}
 	}
 	else{
 		if(*(x+i)=='!' && *(x+i+1)=='!'){
@@ -71,22 +83,30 @@ void is_space(char* x){
 				}
 			}
 			if(test == 0 && *(pre_cmd) != '\0'){
-				printf("%s",pre_cmd);
+				if(z ==0){
+					printf("%s",pre_cmd);
+				}
 				strcpy(x,pre_cmd);
-				check_command(x);
+				check_command(x, z);
 			}
 			else{
 				if(test >0){
 					strcpy(pre_cmd,x);
-					check_command(x);
+					check_command(x, z);
 				}
-				starting();
-				free(x);
+				else if(z==1){
+					printf("\n");
+					free(x);
+				}
+				else{
+					starting();
+					free(x);
+				}
 			}
 		}
 		else{
 			strcpy(pre_cmd,x);
-			check_command(x);
+			check_command(x, z);
 		}
 	}
 }
@@ -94,11 +114,23 @@ int starting(){
   char *input = malloc(sizeof(char)*256);
   printf("icsh : ");
   fgets(input,256,stdin);
-  is_space(input);
+  is_space(input, 0);
   return 0;
 }
-int main(){
-  printf("Starting IC shell\n");
-  starting();
-  return 0;
+int main(int argc, char *argv[]){
+	if(argc == 1){
+  	printf("Starting IC shell\n");
+  	starting();
+  	return 0;
+	}
+	else{
+		char *input = malloc(sizeof(char)*256);
+		FILE *fp;
+		fp = fopen(argv[1],"r");
+		while( fgets (input, 256, fp)!=NULL ) {
+			is_space(input, 1);
+   }
+   fclose(fp);
+	 return 0;
+	}
 }
