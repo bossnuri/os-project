@@ -4,15 +4,16 @@
 #include<stdlib.h>
 #include<string.h>
 #include <unistd.h>
+#include <errno.h>
+#include <sys/types.h> 
+#include <sys/wait.h> 
 
 char pre_cmd[256];
 
 void check_command(char* x, int z){ 
 	char *token = strtok(x," ");
 	if(strcmp(token,"echo\n")==0){
-		
 		printf("\n");
-		free(token);
 		if(z ==0){
 			starting();
 		}
@@ -24,7 +25,6 @@ void check_command(char* x, int z){
 		while(token != NULL){
 			printf(" %s",token);
 			token = strtok(NULL," ");
-			
 		}
 		free(token);
 		if(z ==0){
@@ -43,13 +43,48 @@ void check_command(char* x, int z){
 		exit(atoi(token));
 	}
 	else{
-		printf("bad command\n");
+		int pid;
+		if ((pid=fork()) < 0)
+      {
+        perror ("Fork failed");
+        exit(errno);
+      }
+		if (!pid){
+			int j =0;
+			char *y = malloc(sizeof(char)*256);
+			while(token != NULL){
+				strcat(y,token);
+				strcat(y," ");
+				token = strtok(NULL," ");
+			}
+			char *token2 = strtok(y," ");
+			char *args[4] = {};
+			while(token2 != NULL){
+				*(args+j)=token2;
+				if(*(*(args+j)+ strlen(args[j])-1)=='\n' || *(*(args+j)+ strlen(args[j])-1)==' '){
+					*(*(args+j)+ strlen(args[j])-1) = '\0';
+					}
+				token2 = strtok(NULL," ");
+				j++;
+			}
+			args[j]=NULL;
+			int z = execvp(args[0],args);
+			if (z == -1){
+			printf("bad command\n");
+			}
+		}
+		if (pid)
+      {
+        waitpid (pid, NULL, 0);
+      }
 		if(z ==0){
 			starting();
+			free(token);
 		}
-		free(token);
+		else{
+			free(token);
+		}
 	}
-
 }
 
 void is_space(char* x, int z){
