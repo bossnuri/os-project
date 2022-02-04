@@ -5,10 +5,13 @@
 #include<string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h> 
+#include <sys/types.h>
+#include <signal.h>
 #include <sys/wait.h> 
 
+
 char pre_cmd[256];
+int save_exit;
 
 void check_command(char* x, int z){ 
 	char *token = strtok(x," ");
@@ -40,10 +43,11 @@ void check_command(char* x, int z){
 	else if(strcmp(token,"exit\n")==0){
 		printf("bye");
 		free(token);
+		save_exit = atoi(token);
 		exit(atoi(token));
 	}
 	else{
-		int pid;
+		pid_t pid;
 		if ((pid=fork()) < 0)
       {
         perror ("Fork failed");
@@ -68,14 +72,23 @@ void check_command(char* x, int z){
 				j++;
 			}
 			args[j]=NULL;
+			setpgid(0,0);
+			signal (SIGTTOU, SIG_IGN);
+			tcsetpgrp(STDIN_FILENO, getpid());
+			signal (SIGTSTP, SIG_DFL);
+			signal (SIGINT, SIG_DFL);
 			int z = execvp(args[0],args);
-			if (z == -1){
-			printf("bad command\n");
+		if (z == -1){
+				printf("bad command\n");
 			}
 		}
 		if (pid)
       {
-        waitpid (pid, NULL, 0);
+        waitpid (pid,NULL, WUNTRACED);
+				signal (SIGTTOU, SIG_IGN);
+				tcsetpgrp(STDIN_FILENO, getpid());
+				signal(SIGTSTP, SIG_IGN);
+				signal (SIGINT, SIG_IGN);
       }
 		if(z ==0){
 			starting();
