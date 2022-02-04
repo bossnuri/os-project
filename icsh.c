@@ -15,12 +15,6 @@ int save_exit;
 
 void check_command(char* x, int z){ 
 	char *token = strtok(x," ");
-	if(strcmp(token,"echo\n")==0){
-		printf("\n");
-		if(z ==0){
-			starting();
-		}
-	}
 	if(strcmp(token,"echo")==0){
 		token = strtok(NULL," ");
 		printf("%s",token);
@@ -124,6 +118,7 @@ void is_space(char* x, int z){
 					test++;
 				}
 				else if(*(x+i+2)=='\n'){
+					*(x+i+2) = '\0';
 					break;
 				}
 				else{
@@ -166,6 +161,9 @@ int starting(){
   return 0;
 }
 int main(int argc, char *argv[]){
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	signal (SIGINT, SIG_IGN);
 	if(argc == 1){
   	printf("Starting IC shell\n");
   	starting();
