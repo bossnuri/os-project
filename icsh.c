@@ -13,17 +13,44 @@
 char pre_cmd[256];
 int save_exit;
 
+void delete_excess_space(char* x){
+	int len;
+	len = strlen(x)-1;
+	for(int i = len; i > 0; i--){
+		if(*(x+i) == '\n' || *(x+i)==' '){
+			*(x+i) = '\0';
+		}
+		else{
+			*(x+i+1) = '\n';
+			break;
+		}
+	}
+}
 void check_command(char* x, int z){ 
+	delete_excess_space(x);
 	char *token = strtok(x," ");
+	if(strcmp(token,"echo\n")==0){
+		printf("\n");
+		free(token);
+		starting();
+		save_exit = 0;
+	}
 	if(strcmp(token,"echo")==0){
 		token = strtok(NULL," ");
-		printf("%s",token);
-		token = strtok(NULL," ");
-		while(token != NULL){
-			printf(" %s",token);
+		if(strcmp(token,"$?\n")==0){
+			printf("%d\n",save_exit);
+			save_exit = 0;
+		}
+		else{
+			printf("%s",token);
 			token = strtok(NULL," ");
+			while(token != NULL){
+				printf(" %s",token);
+				token = strtok(NULL," ");
+			}
 		}
 		free(token);
+		save_exit = 0;
 		if(z ==0){
 			starting();
 		}
@@ -48,6 +75,7 @@ void check_command(char* x, int z){
         exit(errno);
       }
 		if (!pid){
+			save_exit = 0;
 			int j =0;
 			char *y = malloc(sizeof(char)*256);
 			while(token != NULL){
@@ -73,8 +101,10 @@ void check_command(char* x, int z){
 			signal (SIGINT, SIG_DFL);
 			int z = execvp(args[0],args);
 		if (z == -1){
-				printf("bad command\n");
-			}
+			save_exit = 127;	
+			printf("bad command\n");
+			kill(getpid(),SIGINT);
+		}
 		}
 		if (pid)
       {
@@ -118,7 +148,6 @@ void is_space(char* x, int z){
 					test++;
 				}
 				else if(*(x+i+2)=='\n'){
-					*(x+i+2) = '\0';
 					break;
 				}
 				else{
