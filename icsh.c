@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <signal.h>
 #include <sys/wait.h> 
+#include<sys/stat.h>
+#include <fcntl.h> 
 
 
 char pre_cmd[256];
@@ -23,6 +25,40 @@ void delete_excess_space(char* x){
 		else{
 			*(x+i+1) = '\n';
 			break;
+		}
+	}
+}
+void redirecto(char** x){
+	int i =0;
+	while(x[i]!= NULL){
+		if(strcmp(x[i],">")==0 && x[i+1] != NULL){
+			int file = open(x[i+1],O_WRONLY|O_CREAT,0666);
+			if(file == -1){
+				perror ("Fail");
+        exit(errno);
+			}else{
+				dup2(file,STDOUT_FILENO);
+				x[i] = NULL;
+				x[i+1] = NULL;
+				close(file);
+			}
+		}
+		else if(strcmp(x[i],"<")==0 && x[i+1] != NULL){
+			int file = open(x[i+1],O_RDONLY);
+			if(file == -1){
+				perror ("Fail");
+        exit(errno);
+			}else{
+				dup2(file,STDIN_FILENO);
+				x[i] = NULL;
+				close(file);
+			}
+		}
+		else if(x[i] == NULL){
+			break;
+		}
+		else{
+			i++;
 		}
 	}
 }
@@ -76,6 +112,7 @@ void check_command(char* x, int z){
       }
 		if (!pid){
 			save_exit = 0;
+			int i =0;
 			int j =0;
 			char *y = malloc(sizeof(char)*256);
 			while(token != NULL){
@@ -99,6 +136,7 @@ void check_command(char* x, int z){
 			tcsetpgrp(STDIN_FILENO, getpid());
 			signal (SIGTSTP, SIG_DFL);
 			signal (SIGINT, SIG_DFL);
+			redirecto(args);
 			int z = execvp(args[0],args);
 		if (z == -1){
 			save_exit = 127;	
