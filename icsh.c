@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <math.h>
 
 char pre_cmd[256];
 int save_exit;
@@ -44,11 +45,21 @@ void delete_excess_space(char *x)
 		}
 	}
 }
+void fg(int id){
+	// int get_pid = getpid()
+	// struct node *current = head;
+	// while(current != NULL){
+	// 	if(current->id == id){
+	// 		printf()
+	// 	}
+	// } 
+}
 void done_sleep()
 {
 	struct node *current = head;
 	struct node *previous = NULL;
 	int count = 1;
+	int total_delete = 0;
 	while (current != NULL)
 	{
 		if (current->check != 1)
@@ -65,14 +76,16 @@ void done_sleep()
 				if (current->pid == head->pid)
 				{
 					head = head->next;
-					number_node--;
-					break;
+					current = current->next;
+					count++;
+					total_delete++;
 				}
 				else
 				{
 					previous->next = current->next;
-					number_node--;
-					break;
+					current = current->next;
+					count++;
+					total_delete++;
 				}
 			}
 			else if (count == number_node - 1)
@@ -81,14 +94,16 @@ void done_sleep()
 				if (current->pid == head->pid)
 				{
 					head = head->next;
-					number_node--;
-					break;
+					current = current->next;
+					count++;
+					total_delete++;
 				}
 				else
 				{
 					previous->next = current->next;
-					number_node--;
-					break;
+					current = current->next;
+					count++;
+					total_delete++;
 				}
 			}
 			else
@@ -97,18 +112,21 @@ void done_sleep()
 				if (current->pid == head->pid)
 				{
 					head = head->next;
-					number_node--;
-					break;
+					current = current->next;
+					count++;
+					total_delete++;
 				}
 				else
 				{
 					previous->next = current->next;
-					number_node--;
-					break;
+					current = current->next;
+					count++;
+					total_delete++;
 				}
 			}
 		}
 	}
+	number_node -= total_delete;
 }
 void child_handler()
 {
@@ -223,6 +241,22 @@ void check_command(char *x, int z)
 		save_exit = atoi(token);
 		exit(atoi(token));
 	}
+	else if(strcmp(token,"fg")== 0){
+		token = strtok(NULL, " ");
+		if(token[0] =='%'){
+			token[0] = ' ';
+			int ans = atoi(token);
+			if(ans == 0){
+				printf("bad command\n");
+				save_exit = 1;
+				if (z == 0){
+					starting();
+				}
+			}else{
+				fg(ans);
+			}
+		}
+	}
 	else if (strcmp(token, "jobs\n") == 0)
 	{
 		int count_node = 0;
@@ -280,13 +314,22 @@ void check_command(char *x, int z)
 			j++;
 		}
 		args[j] = NULL;
-		if (j > 0)
+		if (j > 1)
 		{
 			if (strcmp(args[j - 1], "&") == 0 && strcmp(args[0], "sleep") == 0)
 			{
 				args[j - 1] = NULL;
 				bg_check = 1;
 			}
+			// else if(args[1][0] == '%' && !isalpha(args[1][1]) && args[1][1] != 0){
+			// 	int count_index = 1;
+			// 	int ans = 0;
+			// 	while(args[1][count_index] - 48 != -48){
+			// 		ans += (power(10,(count_index-1)) * args[1][count_index]);
+			// 		count_index++;
+			// 	}
+			// 	printf("%d\n",ans);
+			// }
 		}
 		if ((pid = fork()) < 0)
 		{
