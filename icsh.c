@@ -22,10 +22,81 @@ typedef struct node
 	int check;
 	struct node *next;
 } node;
-
 struct node *head = NULL;
 struct node *current = NULL;
+/*
+------------------------------- extra feature----------------------------------------
+*/
+void make_game(char **question, int *i)
+{
+	question[0] = "Which number should come next in the pattern?\n 37, 34, 31, 28,...\n";
+	i[0] = 25;
+	//
 
+	question[1] = "\nWhat number best completes the analogy:\n 8:4 as 10:?\n";
+	i[1] = 5;
+	//
+	question[2] = "\nWhich of the following can be arranged into a 5-letter English word?\n 1. H R G S T\n 2. R I L S A\n 3. T O O M T\n 4. W Q R G S\n";
+	i[2] = 2;
+}
+void iq()
+{
+	char **question = malloc(sizeof(char *) * 4);
+	int answer[4];
+	int count = 0;
+	int score = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		question = malloc(sizeof(char) * 250);
+	}
+	make_game(question, answer);
+	printf(" <<   Test your IQ   >>\n");
+	printf("<<  type only number  >>\n");
+	printf(" <<type [-1] to exit>>\n\n");
+	for (int i = 0; i < 3; i++)
+	{
+		printf("%s\n", question[i]);
+		char *input = malloc(sizeof(char) * 256);
+		printf(">> : ");
+		fgets(input, 256, stdin);
+		if (atoi(input) == answer[i])
+		{
+			count++;
+			score++;
+		}
+		else if (atoi(input) == -1)
+		{
+			break;
+		}
+		else
+		{
+			count++;
+		}
+	}
+	if (count >= 3)
+	{
+		if (score == 0)
+		{
+			printf("result: STUPID\n");
+		}
+		else if (score == 1)
+		{
+			printf("result: NOT SMART!!\n");
+		}
+		else if (score == 2)
+		{
+			printf("result: NORMAL PEOPLE!!\n");
+		}
+		else
+		{
+			printf("result: *0* SUPER GENIUS!! *0* \n");
+		}
+	}
+	printf("bye\n\n");
+}
+/*
+------------------------------- extra feature----------------------------------------
+*/
 char **copy_array_2_dimension(char **x)
 {
 	char **a = malloc(256 * sizeof(char *));
@@ -41,35 +112,42 @@ char **copy_array_2_dimension(char **x)
 	}
 	return a;
 }
-void bg(int id){
+void bg(int id)
+{
 	int count_node = 1;
 	struct node *current = head;
-	
-	while (current != NULL){
+
+	while (current != NULL)
+	{
 		int value_index = 0;
-		if (current->id == id && current->check == 3){
+		if (current->id == id && current->check == 3)
+		{
 			current->check = 0;
-			if(count_node == number_node){
-				printf("[%d]+ ",current->id);
+			if (count_node == number_node)
+			{
+				printf("[%d]+ ", current->id);
 			}
-			else if(count_node == number_node-1){
-				printf("[%d]- ",current->id);
+			else if (count_node == number_node - 1)
+			{
+				printf("[%d]- ", current->id);
 			}
-			else{
-				printf("[%d]  ",current->id);
+			else
+			{
+				printf("[%d]  ", current->id);
 			}
 			while (strcmp(current->value[value_index], "") != 0)
-				{
-					printf("%s ", current->value[value_index]);
-					value_index++;
-				}
-				printf("&\n");
-				current->check = 0;
-				kill(current->pid,SIGCONT);
-				save_exit = 0;
-				return;
+			{
+				printf("%s ", current->value[value_index]);
+				value_index++;
+			}
+			printf("&\n");
+			current->check = 0;
+			kill(current->pid, SIGCONT);
+			save_exit = 0;
+			return;
 		}
-		else{
+		else
+		{
 			current = current->next;
 		}
 	}
@@ -405,6 +483,10 @@ void check_command(char *x)
 		free(token);
 		exit(atoi(token));
 	}
+	else if (strcmp(token, "play\n") == 0)
+	{
+		iq();
+	}
 	else if (strcmp(token, "fg") == 0)
 	{
 		int ans;
@@ -422,7 +504,7 @@ void check_command(char *x)
 			save_exit = 127;
 		}
 	}
-		else if (strcmp(token, "bg") == 0)
+	else if (strcmp(token, "bg") == 0)
 	{
 		int ans;
 		token = strtok(NULL, " ");
@@ -531,7 +613,7 @@ void check_command(char *x)
 		else if (!pid)
 		{
 			int z = 0;
-			save_exit =0;
+			save_exit = 0;
 			setpgid(0, 0);
 			signal(SIGTTOU, SIG_IGN);
 			if (bg_check == 0)
@@ -559,12 +641,14 @@ void check_command(char *x)
 				tcsetpgrp(0, getpid());
 				signal(SIGTSTP, SIG_IGN);
 				signal(SIGINT, SIG_IGN);
-				if (WIFSIGNALED(stat)) {
-        	save_exit= WTERMSIG(stat);
-        }      
-        if (WIFEXITED(stat)) {
-          save_exit = WEXITSTATUS(stat);
-        }
+				if (WIFSIGNALED(stat))
+				{
+					save_exit = WTERMSIG(stat);
+				}
+				if (WIFEXITED(stat))
+				{
+					save_exit = WEXITSTATUS(stat);
+				}
 			}
 			if (bg_check == 1 || WIFSTOPPED(stat))
 			{
@@ -572,7 +656,7 @@ void check_command(char *x)
 				int w_index = 0;
 				struct node *newNode = malloc(sizeof(struct node));
 				struct node *lastNode = head;
-				newNode->check =0;
+				newNode->check = 0;
 				number_node++;
 				newNode->pid = pid;
 				newNode->value = copy_array_2_dimension(args);
@@ -592,19 +676,22 @@ void check_command(char *x)
 					newNode->id = i;
 					lastNode->next = newNode;
 				}
-				if(WIFSTOPPED(stat)){
+				if (WIFSTOPPED(stat))
+				{
 					int new_i = 0;
 					save_exit = WSTOPSIG(stat);
-					newNode->check =3;
-					printf("[%d]+  Stopped                ",newNode->id);
-					while(strcmp(newNode->value[new_i],"")!=0){
-						printf("%s ",newNode->value[new_i]);
+					newNode->check = 3;
+					printf("[%d]+  Stopped                ", newNode->id);
+					while (strcmp(newNode->value[new_i], "") != 0)
+					{
+						printf("%s ", newNode->value[new_i]);
 						new_i++;
 					}
 					printf("\n");
 				}
-				else{
-					newNode->check =0;
+				else
+				{
+					newNode->check = 0;
 					printf("[%d] %d\n", newNode->id, newNode->pid);
 				}
 			}
