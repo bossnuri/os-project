@@ -15,19 +15,31 @@
 char pre_cmd[256];
 int save_exit;
 int number_node;
-
 typedef struct node
 {
 	int id;
 	int pid;
-	int value;
+	char** value;
 	int check;
 	struct node *next;
-} node;
+}node;
 
 struct node *head = NULL;
 struct node *current = NULL;
 
+char** copy_array_2_dimension(char** x) {
+    char** a = malloc(256 * sizeof(char*));
+    for (int i = 0; i < 256; i++) {
+        a[i] = malloc(256 * sizeof(char));
+
+    } 
+    int i = 0;
+    while (x[i] != NULL) {
+        strcpy(a[i],x[i]);
+        i++;
+    }
+    return a;
+}
 void delete_excess_space(char *x)
 {
 	int len;
@@ -45,15 +57,102 @@ void delete_excess_space(char *x)
 		}
 	}
 }
-void fg(int id){
-	// int get_pid = getpid()
-	// struct node *current = head;
-	// while(current != NULL){
-	// 	if(current->id == id){
-	// 		printf()
-	// 	}
-	// } 
+void bg(int id){
+	
 }
+void fg(int id){
+	int get_pid = getpid();
+	int count_node = 1;
+	int i=0;
+	int stat;
+	struct node *current = head;
+	while(current != NULL){
+		
+		if(current->id == id && current->check != 1){
+			while(strcmp(current->value[i],"") != 0){
+				printf("%s ",current->value[i]);
+				i++;
+			}
+			printf("\n");
+			tcsetpgrp(STDIN_FILENO, current->pid); //turn this pid to forground
+			kill(current->pid,SIGCONT);
+			waitpid(current->pid,&stat,WUNTRACED);
+			if(WIFEXITED(stat)){
+				save_exit = WEXITSTATUS(stat);
+			}
+			if (WIFSIGNALED(stat)) { 
+				current->check = 2;
+        save_exit = WTERMSIG(stat);           
+      }
+			if(WIFSTOPPED(stat)){
+				int value_index = 0;
+				if (count_node == number_node)
+				{
+					printf("[%d]+  Stopped                ", current->id);
+				}
+				else if (count_node == number_node - 1)
+				{
+					printf("[%d]-  Stopped               ", current->id);
+				}
+				else
+				{
+					printf("[%d]   Stopped                ", current->id);
+				}
+				while (strcmp(current->value[value_index],"") != 0) {
+            printf("%s ", current->value[value_index]);
+            value_index++;
+        }
+				printf("&\n");
+				current->check = 3;
+				tcsetpgrp(STDIN_FILENO,get_pid);
+				save_exit = WSTOPSIG(stat);
+				starting();
+			}
+			tcsetpgrp(STDIN_FILENO,get_pid);
+			starting();		
+		}
+		current = current->next;
+		count_node++;
+	}
+	printf("bad command");
+	save_exit =1;
+	starting();
+}
+void terminate_sleep(){
+	struct node *current = head;
+	struct node *previous = NULL;
+	int count = 1;
+	int total_delete = 0;
+	while (current != NULL)
+	{
+		if (current->check != 2)
+		{
+			previous = current;
+			current = current->next;
+			count++;
+		}
+		else
+		{
+				if (current->pid == head->pid)
+				{
+					head = head->next;
+					current = current->next;
+					count++;
+					total_delete++;
+				}
+				else
+				{
+					previous->next = current->next;
+					current = current->next;
+					count++;
+					total_delete++;
+			}
+		}
+	}
+	number_node -= total_delete;
+}
+
+
 void done_sleep()
 {
 	struct node *current = head;
@@ -70,9 +169,15 @@ void done_sleep()
 		}
 		else
 		{
+			int value_index = 0;
 			if (count == number_node)
 			{
-				printf("[%d]+  Done                    sleep %d\n", current->id, current->value);
+				printf("[%d]+  Done                   ", current->id);
+				while (strcmp(current->value[value_index],"") != 0){
+            printf("%s ", current->value[value_index]);
+            value_index++;
+        }
+				printf("\n");
 				if (current->pid == head->pid)
 				{
 					head = head->next;
@@ -90,7 +195,12 @@ void done_sleep()
 			}
 			else if (count == number_node - 1)
 			{
-				printf("[%d]-  Done                    sleep %d\n", current->id, current->value);
+				printf("[%d]-  Done                   ", current->id);
+				while (strcmp(current->value[value_index],"") != 0) {
+            printf("%s ", current->value[value_index]);
+            value_index++;
+        }
+				printf("\n");
 				if (current->pid == head->pid)
 				{
 					head = head->next;
@@ -108,7 +218,12 @@ void done_sleep()
 			}
 			else
 			{
-				printf("[%d]   Done                    sleep %d\n", current->id, current->value);
+				printf("[%d]   Done                   ", current->id);
+				while (strcmp(current->value[value_index],"") != 0) {
+            printf("%s ", current->value[value_index]);
+            value_index++;
+        }
+				printf("\n");
 				if (current->pid == head->pid)
 				{
 					head = head->next;
@@ -242,19 +357,18 @@ void check_command(char *x, int z)
 		exit(atoi(token));
 	}
 	else if(strcmp(token,"fg")== 0){
+		int ans;
 		token = strtok(NULL, " ");
-		if(token[0] =='%'){
-			token[0] = ' ';
-			int ans = atoi(token);
-			if(ans == 0){
-				printf("bad command\n");
-				save_exit = 1;
-				if (z == 0){
-					starting();
-				}
-			}else{
-				fg(ans);
-			}
+		if(token[0]=='%'){
+			token[0]=' ';
+			ans = atoi(token);
+			fg(ans);
+		}
+		else{
+			printf("bad command");
+			free(token);
+			save_exit=127;
+			starting();
 		}
 	}
 	else if (strcmp(token, "jobs\n") == 0)
@@ -268,19 +382,36 @@ void check_command(char *x, int z)
 			{
 				ptr = ptr->next;
 			}
-			else if (count_node == number_node)
-			{
-				printf("[%d]+  Running                sleep %d &\n", ptr->id, ptr->value);
-				ptr = ptr->next;
-			}
-			else if (count_node == number_node - 1)
-			{
-				printf("[%d]-  Running                sleep %d &\n", ptr->id, ptr->value);
-				ptr = ptr->next;
-			}
-			else
-			{
-				printf("[%d]   Running                sleep %d &\n", ptr->id, ptr->value);
+			else{
+				int value_index = 0;
+				if (count_node == number_node && ptr->check == 0)
+				{
+					printf("[%d]+  Running                ", ptr->id);
+				}
+				else if (count_node == number_node - 1 && ptr->check == 0)
+				{
+					printf("[%d]-  Running                ", ptr->id);
+				}
+				else if(ptr->check == 0)
+				{
+					printf("[%d]   Running                ", ptr->id);
+				}
+				else if(count_node == number_node && ptr->check == 3)
+				{
+					printf("[%d]+  Stopped                ", ptr->id);
+				}
+				else if (count_node == number_node - 1 && ptr->check == 3)
+				{
+					printf("[%d]-  Stopped                ", ptr->id);
+				}
+				else{
+					printf("[%d]   Stopped                ", ptr->id);
+				}
+				while (strcmp(ptr->value[value_index],"") != 0) {
+            printf("%s ", ptr->value[value_index]);
+            value_index++;
+        }
+				printf("&\n");
 				ptr = ptr->next;
 			}
 		}
@@ -302,7 +433,7 @@ void check_command(char *x, int z)
 			token = strtok(NULL, " ");
 		}
 		char *token2 = strtok(y, " ");
-		char *args[4] = {};
+		char *args[20] = {};
 		while (token2 != NULL)
 		{
 			*(args + j) = token2;
@@ -321,15 +452,6 @@ void check_command(char *x, int z)
 				args[j - 1] = NULL;
 				bg_check = 1;
 			}
-			// else if(args[1][0] == '%' && !isalpha(args[1][1]) && args[1][1] != 0){
-			// 	int count_index = 1;
-			// 	int ans = 0;
-			// 	while(args[1][count_index] - 48 != -48){
-			// 		ans += (power(10,(count_index-1)) * args[1][count_index]);
-			// 		count_index++;
-			// 	}
-			// 	printf("%d\n",ans);
-			// }
 		}
 		if ((pid = fork()) < 0)
 		{
@@ -371,10 +493,11 @@ void check_command(char *x, int z)
 			if (bg_check == 1)
 			{
 				int i = 1;
+				int w_index = 0;
 				struct node *newNode = malloc(sizeof(struct node));
 				number_node++;
 				newNode->pid = pid;
-				newNode->value = atoi(args[1]);
+				newNode->value = copy_array_2_dimension(args);
 				newNode->next = NULL;
 				if (head == NULL)
 				{
@@ -396,8 +519,9 @@ void check_command(char *x, int z)
 			}
 			if (z == 0)
 			{
-				starting();
 				free(token);
+				starting();
+				
 			}
 			else
 			{
@@ -486,6 +610,7 @@ void is_space(char *x, int z)
 int starting()
 {
 	done_sleep();
+	terminate_sleep();
 	char *input = malloc(sizeof(char) * 256);
 	printf("icsh : ");
 	fgets(input, 256, stdin);
