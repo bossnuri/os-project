@@ -10,7 +10,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <math.h>
 
 char pre_cmd[256];
 int save_exit;
@@ -19,72 +18,95 @@ typedef struct node
 {
 	int id;
 	int pid;
-	char** value;
+	char **value;
 	int check;
 	struct node *next;
-}node;
+} node;
 
 struct node *head = NULL;
 struct node *current = NULL;
 
-char** copy_array_2_dimension(char** x) {
-    char** a = malloc(256 * sizeof(char*));
-    for (int i = 0; i < 256; i++) {
-        a[i] = malloc(256 * sizeof(char));
-
-    } 
-    int i = 0;
-    while (x[i] != NULL) {
-        strcpy(a[i],x[i]);
-        i++;
-    }
-    return a;
-}
-void delete_excess_space(char *x)
+char **copy_array_2_dimension(char **x)
 {
-	int len;
-	len = strlen(x) - 1;
-	for (int i = len; i > 0; i--)
+	char **a = malloc(256 * sizeof(char *));
+	for (int i = 0; i < 256; i++)
 	{
-		if (*(x + i) == '\n' || *(x + i) == ' ')
-		{
-			*(x + i) = '\0';
-		}
-		else
-		{
-			*(x + i + 1) = '\n';
-			break;
-		}
+		a[i] = malloc(256 * sizeof(char));
 	}
+	int i = 0;
+	while (x[i] != NULL)
+	{
+		strcpy(a[i], x[i]);
+		i++;
+	}
+	return a;
 }
 void bg(int id){
+	int count_node = 1;
+	struct node *current = head;
 	
+	while (current != NULL){
+		int value_index = 0;
+		if (current->id == id && current->check == 3){
+			current->check = 0;
+			if(count_node == number_node){
+				printf("[%d]+ ",current->id);
+			}
+			else if(count_node == number_node-1){
+				printf("[%d]- ",current->id);
+			}
+			else{
+				printf("[%d]  ",current->id);
+			}
+			while (strcmp(current->value[value_index], "") != 0)
+				{
+					printf("%s ", current->value[value_index]);
+					value_index++;
+				}
+				printf("&\n");
+				current->check = 0;
+				kill(current->pid,SIGCONT);
+				save_exit = 0;
+				return;
+		}
+		else{
+			current = current->next;
+		}
+	}
+	printf("no such job\n");
+	save_exit = 1;
 }
-void fg(int id){
+void fg(int id)
+{
 	int get_pid = getpid();
 	int count_node = 1;
-	int i=0;
+	int i = 0;
 	int stat;
 	struct node *current = head;
-	while(current != NULL){
-		
-		if(current->id == id && current->check != 1){
-			while(strcmp(current->value[i],"") != 0){
-				printf("%s ",current->value[i]);
+	while (current != NULL)
+	{
+		if (current->id == id && current->check != 1)
+		{
+			while (strcmp(current->value[i], "") != 0)
+			{
+				printf("%s ", current->value[i]);
 				i++;
 			}
 			printf("\n");
-			tcsetpgrp(STDIN_FILENO, current->pid); //turn this pid to forground
-			kill(current->pid,SIGCONT);
-			waitpid(current->pid,&stat,WUNTRACED);
-			if(WIFEXITED(stat)){
+			tcsetpgrp(STDIN_FILENO, current->pid); // turn this pid to forground
+			kill(current->pid, SIGCONT);
+			waitpid(current->pid, &stat, WUNTRACED);
+			if (WIFEXITED(stat))
+			{
 				save_exit = WEXITSTATUS(stat);
 			}
-			if (WIFSIGNALED(stat)) { 
+			if (WIFSIGNALED(stat))
+			{
 				current->check = 2;
-        save_exit = WTERMSIG(stat);           
-      }
-			if(WIFSTOPPED(stat)){
+				save_exit = WTERMSIG(stat);
+			}
+			if (WIFSTOPPED(stat))
+			{
 				int value_index = 0;
 				if (count_node == number_node)
 				{
@@ -98,27 +120,28 @@ void fg(int id){
 				{
 					printf("[%d]   Stopped                ", current->id);
 				}
-				while (strcmp(current->value[value_index],"") != 0) {
-            printf("%s ", current->value[value_index]);
-            value_index++;
-        }
+				while (strcmp(current->value[value_index], "") != 0)
+				{
+					printf("%s ", current->value[value_index]);
+					value_index++;
+				}
 				printf("&\n");
 				current->check = 3;
-				tcsetpgrp(STDIN_FILENO,get_pid);
+				tcsetpgrp(STDIN_FILENO, get_pid);
 				save_exit = WSTOPSIG(stat);
-				starting();
+				return;
 			}
-			tcsetpgrp(STDIN_FILENO,get_pid);
-			starting();		
+			tcsetpgrp(STDIN_FILENO, get_pid);
+			return;
 		}
 		current = current->next;
 		count_node++;
 	}
-	printf("bad command");
-	save_exit =1;
-	starting();
+	printf("no such job\n");
+	save_exit = 1;
 }
-void terminate_sleep(){
+void terminate_sleep()
+{
 	struct node *current = head;
 	struct node *previous = NULL;
 	int count = 1;
@@ -133,26 +156,24 @@ void terminate_sleep(){
 		}
 		else
 		{
-				if (current->pid == head->pid)
-				{
-					head = head->next;
-					current = current->next;
-					count++;
-					total_delete++;
-				}
-				else
-				{
-					previous->next = current->next;
-					current = current->next;
-					count++;
-					total_delete++;
+			if (current->pid == head->pid)
+			{
+				head = head->next;
+				current = current->next;
+				count++;
+				total_delete++;
+			}
+			else
+			{
+				previous->next = current->next;
+				current = current->next;
+				count++;
+				total_delete++;
 			}
 		}
 	}
 	number_node -= total_delete;
 }
-
-
 void done_sleep()
 {
 	struct node *current = head;
@@ -173,10 +194,11 @@ void done_sleep()
 			if (count == number_node)
 			{
 				printf("[%d]+  Done                   ", current->id);
-				while (strcmp(current->value[value_index],"") != 0){
-            printf("%s ", current->value[value_index]);
-            value_index++;
-        }
+				while (strcmp(current->value[value_index], "") != 0)
+				{
+					printf("%s ", current->value[value_index]);
+					value_index++;
+				}
 				printf("\n");
 				if (current->pid == head->pid)
 				{
@@ -196,10 +218,11 @@ void done_sleep()
 			else if (count == number_node - 1)
 			{
 				printf("[%d]-  Done                   ", current->id);
-				while (strcmp(current->value[value_index],"") != 0) {
-            printf("%s ", current->value[value_index]);
-            value_index++;
-        }
+				while (strcmp(current->value[value_index], "") != 0)
+				{
+					printf("%s ", current->value[value_index]);
+					value_index++;
+				}
 				printf("\n");
 				if (current->pid == head->pid)
 				{
@@ -219,10 +242,11 @@ void done_sleep()
 			else
 			{
 				printf("[%d]   Done                   ", current->id);
-				while (strcmp(current->value[value_index],"") != 0) {
-            printf("%s ", current->value[value_index]);
-            value_index++;
-        }
+				while (strcmp(current->value[value_index], "") != 0)
+				{
+					printf("%s ", current->value[value_index]);
+					value_index++;
+				}
 				printf("\n");
 				if (current->pid == head->pid)
 				{
@@ -279,6 +303,7 @@ void redirecto(char **x)
 				x[i] = NULL;
 				x[i + 1] = NULL;
 				close(file);
+				break;
 			}
 		}
 		else if (strcmp(x[i], "<") == 0 && x[i + 1] != NULL)
@@ -294,11 +319,8 @@ void redirecto(char **x)
 				dup2(file, STDIN_FILENO);
 				x[i] = NULL;
 				close(file);
+				break;
 			}
-		}
-		else if (x[i] == NULL)
-		{
-			break;
 		}
 		else
 		{
@@ -306,16 +328,47 @@ void redirecto(char **x)
 		}
 	}
 }
-void check_command(char *x, int z)
+void delete_excess_space(char *x)
+{
+	int len;
+	len = strlen(x) - 1;
+	for (int i = len; i > 0; i--)
+	{
+		if (*(x + i) == '\n' || *(x + i) == ' ')
+		{
+			*(x + i) = '\0';
+		}
+		else
+		{
+			*(x + i + 1) = '\n';
+			break;
+		}
+	}
+}
+
+int check_empty(char *x)
+{
+	if (strlen(x) == 0)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void check_command(char *x)
 {
 	delete_excess_space(x);
 	char *token = strtok(x, " ");
 	if (strcmp(token, "echo\n") == 0)
 	{
+
 		printf("\n");
 		free(token);
-		starting();
 		save_exit = 0;
+		return;
 	}
 	if (strcmp(token, "echo") == 0)
 	{
@@ -337,10 +390,7 @@ void check_command(char *x, int z)
 		}
 		free(token);
 		save_exit = 0;
-		if (z == 0)
-		{
-			starting();
-		}
+		return;
 	}
 	else if (strcmp(token, "exit") == 0)
 	{
@@ -353,22 +403,40 @@ void check_command(char *x, int z)
 	{
 		printf("bye");
 		free(token);
-		save_exit = atoi(token);
 		exit(atoi(token));
 	}
-	else if(strcmp(token,"fg")== 0){
+	else if (strcmp(token, "fg") == 0)
+	{
 		int ans;
 		token = strtok(NULL, " ");
-		if(token[0]=='%'){
-			token[0]=' ';
+		if (token[0] == '%')
+		{
+			token[0] = ' ';
 			ans = atoi(token);
 			fg(ans);
 		}
-		else{
-			printf("bad command");
+		else
+		{
+			printf("bad command\n");
 			free(token);
-			save_exit=127;
-			starting();
+			save_exit = 127;
+		}
+	}
+		else if (strcmp(token, "bg") == 0)
+	{
+		int ans;
+		token = strtok(NULL, " ");
+		if (token[0] == '%')
+		{
+			token[0] = ' ';
+			ans = atoi(token);
+			bg(ans);
+		}
+		else
+		{
+			printf("bad command\n");
+			free(token);
+			save_exit = 127;
 		}
 	}
 	else if (strcmp(token, "jobs\n") == 0)
@@ -382,7 +450,8 @@ void check_command(char *x, int z)
 			{
 				ptr = ptr->next;
 			}
-			else{
+			else
+			{
 				int value_index = 0;
 				if (count_node == number_node && ptr->check == 0)
 				{
@@ -392,11 +461,11 @@ void check_command(char *x, int z)
 				{
 					printf("[%d]-  Running                ", ptr->id);
 				}
-				else if(ptr->check == 0)
+				else if (ptr->check == 0)
 				{
 					printf("[%d]   Running                ", ptr->id);
 				}
-				else if(count_node == number_node && ptr->check == 3)
+				else if (count_node == number_node && ptr->check == 3)
 				{
 					printf("[%d]+  Stopped                ", ptr->id);
 				}
@@ -404,27 +473,28 @@ void check_command(char *x, int z)
 				{
 					printf("[%d]-  Stopped                ", ptr->id);
 				}
-				else{
+				else
+				{
 					printf("[%d]   Stopped                ", ptr->id);
 				}
-				while (strcmp(ptr->value[value_index],"") != 0) {
-            printf("%s ", ptr->value[value_index]);
-            value_index++;
-        }
+				while (strcmp(ptr->value[value_index], "") != 0)
+				{
+					printf("%s ", ptr->value[value_index]);
+					value_index++;
+				}
 				printf("&\n");
 				ptr = ptr->next;
 			}
 		}
-		if (z == 0)
-		{
-			starting();
-		}
+		free(token);
 	}
+	// command line command
 	else
 	{
-		pid_t pid;
-		int j = 0;
 		int bg_check = 0;
+		int j = 0;
+		int stat;
+		pid_t pid;
 		char *y = malloc(sizeof(char) * 256);
 		while (token != NULL)
 		{
@@ -433,7 +503,7 @@ void check_command(char *x, int z)
 			token = strtok(NULL, " ");
 		}
 		char *token2 = strtok(y, " ");
-		char *args[20] = {};
+		char *args[10] = {};
 		while (token2 != NULL)
 		{
 			*(args + j) = token2;
@@ -458,10 +528,10 @@ void check_command(char *x, int z)
 			perror("Fork failed");
 			exit(errno);
 		}
-		if (!pid)
+		else if (!pid)
 		{
 			int z = 0;
-			save_exit = 0;
+			save_exit =0;
 			setpgid(0, 0);
 			signal(SIGTTOU, SIG_IGN);
 			if (bg_check == 0)
@@ -476,7 +546,7 @@ void check_command(char *x, int z)
 			{
 				save_exit = 127;
 				printf("bad command\n");
-				exit(save_exit);
+				kill(getpid(), SIGINT);
 			}
 		}
 		else
@@ -484,17 +554,25 @@ void check_command(char *x, int z)
 			setpgid(pid, pid);
 			if (bg_check == 0)
 			{
-				waitpid(pid, NULL, WUNTRACED);
+				waitpid(pid, &stat, WUNTRACED);
 				signal(SIGTTOU, SIG_IGN);
-				tcsetpgrp(STDIN_FILENO, getpid());
+				tcsetpgrp(0, getpid());
 				signal(SIGTSTP, SIG_IGN);
 				signal(SIGINT, SIG_IGN);
+				if (WIFSIGNALED(stat)) {
+        	save_exit= WTERMSIG(stat);
+        }      
+        if (WIFEXITED(stat)) {
+          save_exit = WEXITSTATUS(stat);
+        }
 			}
-			if (bg_check == 1)
+			if (bg_check == 1 || WIFSTOPPED(stat))
 			{
 				int i = 1;
 				int w_index = 0;
 				struct node *newNode = malloc(sizeof(struct node));
+				struct node *lastNode = head;
+				newNode->check =0;
 				number_node++;
 				newNode->pid = pid;
 				newNode->value = copy_array_2_dimension(args);
@@ -506,7 +584,6 @@ void check_command(char *x, int z)
 				}
 				else
 				{
-					struct node *lastNode = head;
 					while (lastNode->next != NULL)
 					{
 						lastNode = lastNode->next;
@@ -515,23 +592,29 @@ void check_command(char *x, int z)
 					newNode->id = i;
 					lastNode->next = newNode;
 				}
-				printf("[%d] %d\n", newNode->id, newNode->pid);
+				if(WIFSTOPPED(stat)){
+					int new_i = 0;
+					save_exit = WSTOPSIG(stat);
+					newNode->check =3;
+					printf("[%d]+  Stopped                ",newNode->id);
+					while(strcmp(newNode->value[new_i],"")!=0){
+						printf("%s ",newNode->value[new_i]);
+						new_i++;
+					}
+					printf("\n");
+				}
+				else{
+					newNode->check =0;
+					printf("[%d] %d\n", newNode->id, newNode->pid);
+				}
 			}
-			if (z == 0)
-			{
-				free(token);
-				starting();
-				
-			}
-			else
-			{
-				free(token);
-			}
+			free(token);
+			free(token2);
 		}
 	}
 }
 
-void is_space(char *x, int z)
+void is_space(char *x, int check)
 {
 	int i = 0;
 	while (*(x + i) == ' ')
@@ -540,16 +623,7 @@ void is_space(char *x, int z)
 	}
 	if (strlen(x) - 1 == i || strlen(x) == 1)
 	{
-		if (z == 1)
-		{
-			printf("\n");
-			free(x);
-		}
-		else
-		{
-			starting();
-			free(x);
-		}
+		free(x);
 	}
 	else
 	{
@@ -574,43 +648,36 @@ void is_space(char *x, int z)
 			}
 			if (test == 0 && *(pre_cmd) != '\0')
 			{
-				if (z == 0)
+				if (check != 1)
 				{
 					printf("%s", pre_cmd);
 				}
 				strcpy(x, pre_cmd);
-				check_command(x, z);
+				check_command(x);
 			}
 			else
 			{
 				if (test > 0)
 				{
 					strcpy(pre_cmd, x);
-					check_command(x, z);
+					check_command(x);
 				}
-				else if (z == 1)
-				{
-					printf("\n");
-					free(x);
-				}
-				else
-				{
-					starting();
-					free(x);
-				}
+				free(x);
 			}
 		}
 		else
 		{
 			strcpy(pre_cmd, x);
-			check_command(x, z);
+			check_command(x);
 		}
 	}
 }
 int starting()
 {
-	done_sleep();
-	terminate_sleep();
+	signal(SIGCHLD, child_handler);
+	signal(SIGTTOU, SIG_IGN);
+	signal(SIGTSTP, SIG_IGN);
+	signal(SIGINT, SIG_IGN);
 	char *input = malloc(sizeof(char) * 256);
 	printf("icsh : ");
 	fgets(input, 256, stdin);
@@ -619,26 +686,36 @@ int starting()
 }
 int main(int argc, char *argv[])
 {
-	signal(SIGCHLD, child_handler);
-	signal(SIGTTOU, SIG_IGN);
-	signal(SIGTSTP, SIG_IGN);
-	signal(SIGINT, SIG_IGN);
+	printf("Starting IC shell\n");
 	if (argc == 1)
 	{
-		printf("Starting IC shell\n");
-		starting();
-		return 0;
+		while (1)
+		{
+			done_sleep();
+			terminate_sleep();
+			starting();
+		}
 	}
 	else
 	{
 		char *input = malloc(sizeof(char) * 256);
 		FILE *fp;
 		fp = fopen(argv[1], "r");
-		while (fgets(input, 256, fp) != NULL)
+		if (fp)
 		{
-			is_space(input, 1);
+			while (fgets(input, 256, fp) != NULL)
+			{
+				if (check_empty(input))
+				{
+					continue;
+				}
+				else
+				{
+					is_space(input, 1);
+				}
+			}
 		}
 		fclose(fp);
-		return 0;
 	}
+	return 0;
 }
