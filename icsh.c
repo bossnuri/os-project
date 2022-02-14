@@ -93,6 +93,7 @@ void iq()
 		}
 	}
 	printf("bye\n\n");
+	free(question);
 }
 /*
 ------------------------------- extra feature----------------------------------------
@@ -486,6 +487,7 @@ void check_command(char *x)
 	else if (strcmp(token, "play\n") == 0)
 	{
 		iq();
+		free(token);
 	}
 	else if (strcmp(token, "fg") == 0)
 	{
