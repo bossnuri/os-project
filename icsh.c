@@ -77,19 +77,19 @@ void iq()
 	{
 		if (score == 0)
 		{
-			printf("result: STUPID\n");
+			printf("result: (0/3) STUPID\n");
 		}
 		else if (score == 1)
 		{
-			printf("result: NOT SMART!!\n");
+			printf("result: (1/3) NOT SMART!!\n");
 		}
 		else if (score == 2)
 		{
-			printf("result: NORMAL PEOPLE!!\n");
+			printf("result: (2/3) NORMAL PEOPLE!!\n");
 		}
 		else
 		{
-			printf("result: *0* SUPER GENIUS!! *0* \n");
+			printf("result: (3/3) *0* SUPER GENIUS!! *0* \n");
 		}
 	}
 	printf("bye\n\n");
